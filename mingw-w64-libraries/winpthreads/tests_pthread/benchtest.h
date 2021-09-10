@@ -1,5 +1,4 @@
-/* 
- * barrier1.c
+/*
  *
  *
  * --------------------------------------------------------------------------
@@ -31,28 +30,39 @@
  *      if not, write to the Free Software Foundation, Inc.,
  *      59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * --------------------------------------------------------------------------
- *
- * Create a barrier object and then destroy it.
- *
  */
 
-#include "test.h"
+enum {
+  OLD_WIN32CS,
+  OLD_WIN32MUTEX
+};
 
-pthread_barrier_t barrier = NULL;
+extern int old_mutex_use;
 
-int
-main()
-{
-  assert(barrier == NULL);
+struct old_mutex_t_ {
+  HANDLE mutex;
+  CRITICAL_SECTION cs;
+};
 
-  assert(pthread_barrier_init(&barrier, NULL, 1) == 0);
+typedef struct old_mutex_t_ * old_mutex_t;
 
-  assert(barrier != NULL);
+struct old_mutexattr_t_ {
+  int pshared;
+};
 
-  assert(pthread_barrier_destroy(&barrier) == 0);
+typedef struct old_mutexattr_t_ * old_mutexattr_t;
 
-  assert(barrier == NULL);
+extern BOOL (WINAPI *ptw32_try_enter_critical_section)(LPCRITICAL_SECTION);
+extern HINSTANCE ptw32_h_kernel32;
 
-  return 0;
-}
+#define PTW32_OBJECT_AUTO_INIT ((void *) -1)
+
+void dummy_call(int * a);
+void interlocked_inc_with_conditionals(int *a);
+void interlocked_dec_with_conditionals(int *a);
+int old_mutex_init(old_mutex_t *mutex, const old_mutexattr_t *attr);
+int old_mutex_lock(old_mutex_t *mutex);
+int old_mutex_unlock(old_mutex_t *mutex);
+int old_mutex_trylock(old_mutex_t *mutex);
+int old_mutex_destroy(old_mutex_t *mutex);
+/****************************************************************************************/

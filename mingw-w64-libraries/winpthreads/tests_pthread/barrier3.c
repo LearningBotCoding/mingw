@@ -1,5 +1,5 @@
-/* 
- * barrier1.c
+/*
+ * barrier3.c
  *
  *
  * --------------------------------------------------------------------------
@@ -33,26 +33,45 @@
  *
  * --------------------------------------------------------------------------
  *
- * Create a barrier object and then destroy it.
+ * Declare a single barrier object with barrier attribute, wait on it, 
+ * and then destroy it.
  *
  */
 
 #include "test.h"
-
+ 
 pthread_barrier_t barrier = NULL;
+static intptr_t result = 1;
 
+void * func(void * arg)
+{
+  union _ptr_int {
+		void	*v;
+		int		i;
+  } r;
+  r.i = pthread_barrier_wait(&barrier);
+
+  return r.v; 
+}
+ 
 int
 main()
 {
-  assert(barrier == NULL);
+  pthread_t t;
+  pthread_barrierattr_t ba;
 
-  assert(pthread_barrier_init(&barrier, NULL, 1) == 0);
+  assert(pthread_barrierattr_init(&ba) == 0);
+  assert(pthread_barrierattr_setpshared(&ba, PTHREAD_PROCESS_PRIVATE) == 0);
+  assert(pthread_barrier_init(&barrier, &ba, 1) == 0);
 
-  assert(barrier != NULL);
+  assert(pthread_create(&t, NULL, func, NULL) == 0);
+
+  assert(pthread_join(t, (void **) &result) == 0);
+
+  assert(result == PTHREAD_BARRIER_SERIAL_THREAD);
 
   assert(pthread_barrier_destroy(&barrier) == 0);
-
-  assert(barrier == NULL);
+  assert(pthread_barrierattr_destroy(&ba) == 0);
 
   return 0;
 }

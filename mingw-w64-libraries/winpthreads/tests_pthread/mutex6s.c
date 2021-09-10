@@ -1,5 +1,5 @@
 /* 
- * barrier1.c
+ * mutex6s.c
  *
  *
  * --------------------------------------------------------------------------
@@ -33,26 +33,61 @@
  *
  * --------------------------------------------------------------------------
  *
- * Create a barrier object and then destroy it.
+ * Test the default (type not set) static mutex type.
+ * Should be the same as PTHREAD_MUTEX_NORMAL.
+ * Thread locks mutex twice (recursive lock).
+ * Locking thread should deadlock on second attempt.
  *
+ * Depends on API functions: 
+ *	pthread_mutex_lock()
+ *	pthread_mutex_trylock()
+ *	pthread_mutex_unlock()
  */
 
 #include "test.h"
 
-pthread_barrier_t barrier = NULL;
+static int lockCount = 0;
 
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void * locker(void * arg)
+{
+  assert(pthread_mutex_lock(&mutex) == 0);
+  lockCount++;
+
+  /* Should wait here (deadlocked) */
+  assert(pthread_mutex_lock(&mutex) == 0);
+  lockCount++;
+  assert(pthread_mutex_unlock(&mutex) == 0);
+
+  return 0;
+}
+ 
 int
 main()
 {
-  assert(barrier == NULL);
+  pthread_t t;
 
-  assert(pthread_barrier_init(&barrier, NULL, 1) == 0);
+  assert(mutex == PTHREAD_MUTEX_INITIALIZER);
 
-  assert(barrier != NULL);
+  assert(pthread_create(&t, NULL, locker, NULL) == 0);
 
-  assert(pthread_barrier_destroy(&barrier) == 0);
+  Sleep(1000);
 
-  assert(barrier == NULL);
+  assert(lockCount == 1);
 
+  /*
+   * Should succeed even though we don't own the lock
+   * because FAST mutexes don't check ownership.
+   */
+  assert(pthread_mutex_unlock(&mutex) == 0);
+
+  Sleep (1000);
+
+  assert(lockCount == 2);
+
+  exit(0);
+
+  /* Never reached */
   return 0;
 }
