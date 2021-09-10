@@ -20,8 +20,30 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef WIN_PTHREADS_SEMAPHORE_H
-#define WIN_PTHREADS_SEMAPHORE_H
+#include <stddef.h>
+#include <errno.h>
+#include <sys/types.h>
+
+#include <process.h>
+#include <limits.h>
+#include <signal.h>
+
+#include <sys/timeb.h>
+
+#ifndef WIN_PTHREADS_SCHED_H
+#define WIN_PTHREADS_SCHED_H
+
+#ifndef SCHED_OTHER
+/* Some POSIX realtime extensions, mostly stubbed */
+#define SCHED_OTHER     0
+#define SCHED_FIFO      1
+#define SCHED_RR        2
+#define SCHED_MIN       SCHED_OTHER
+#define SCHED_MAX       SCHED_RR
+
+struct sched_param {
+  int sched_priority;
+};
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,53 +51,29 @@ extern "C" {
 
 #if defined DLL_EXPORT && !defined (WINPTHREAD_EXPORT_ALL_DEBUG)
 #ifdef IN_WINPTHREAD
-#define WINPTHREAD_SEMA_API __declspec(dllexport)
+#define WINPTHREAD_SCHED_API __declspec(dllexport)
 #else
-#define WINPTHREAD_SEMA_API __declspec(dllimport)
+#define WINPTHREAD_SCHED_API __declspec(dllimport)
 #endif
 #else
-#define WINPTHREAD_SEMA_API
+#define WINPTHREAD_SCHED_API
 #endif
 
-/* Set this to 0 to disable it */
-#define USE_SEM_CriticalSection_SpinCount	100
-
-#define SEM_VALUE_MAX   INT_MAX
-
-#ifndef _MODE_T_
-#define	_MODE_T_
-typedef unsigned short mode_t;
-#endif
-
-typedef void		*sem_t;
-
-#define SEM_FAILED 		NULL
-
-int WINPTHREAD_SEMA_API sem_init(sem_t * sem, int pshared, unsigned int value);
-
-int WINPTHREAD_SEMA_API sem_destroy(sem_t *sem);
-
-int WINPTHREAD_SEMA_API sem_trywait(sem_t *sem);
-
-int WINPTHREAD_SEMA_API sem_wait(sem_t *sem);
-
-int WINPTHREAD_SEMA_API sem_timedwait(sem_t * sem, const struct timespec *t);
-
-int WINPTHREAD_SEMA_API sem_post(sem_t *sem);
-
-int WINPTHREAD_SEMA_API sem_post_multiple(sem_t *sem, int count);
-
-/* yes, it returns a semaphore (or SEM_FAILED) */
-sem_t * WINPTHREAD_SEMA_API sem_open(const char * name, int oflag, mode_t mode, unsigned int value);
-
-int WINPTHREAD_SEMA_API sem_close(sem_t * sem);
-
-int WINPTHREAD_SEMA_API sem_unlink(const char * name);
-
-int WINPTHREAD_SEMA_API sem_getvalue(sem_t * sem, int * sval);
+int WINPTHREAD_SCHED_API sched_yield(void);
+int WINPTHREAD_SCHED_API sched_get_priority_min(int pol);
+int WINPTHREAD_SCHED_API sched_get_priority_max(int pol);
+int WINPTHREAD_SCHED_API sched_getscheduler(pid_t pid);
+int WINPTHREAD_SCHED_API sched_setscheduler(pid_t pid, int pol, const struct sched_param *param);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* WIN_PTHREADS_SEMAPHORE_H */
+#endif
+
+#ifndef sched_rr_get_interval
+#define sched_rr_get_interval(_p, _i) \
+  ( errno = ENOTSUP, (int) -1 )
+#endif
+
+#endif /* WIN_PTHREADS_SCHED_H */
